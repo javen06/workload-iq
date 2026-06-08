@@ -92,6 +92,10 @@ EMPLOYEE_NAMES = [
     "ben lim", "clara ng", "evelyn koh", "farah aziz",
     "gary ong", "hannah soh", "ivan teo", "jasmine wu",
 ]
+MANAGER_TEAMS = {
+    "alice tan": ["ben lim", "clara ng", "evelyn koh", "farah aziz"],
+    "david yeo": ["gary ong", "hannah soh", "ivan teo", "jasmine wu"],
+}
 TASK_TYPES    = ["bug fix", "feature build", "data analysis",
                  "report writing", "support ticket", "documentation"]
 SKILLS        = ["frontend", "backend", "debugging",
@@ -157,13 +161,15 @@ def pill(r: str) -> str:
 
 def recalculate_employee(emp_df: pd.DataFrame, employee_id: str) -> None:
     mask = emp_df["id"] == employee_id
-    load = emp_df.loc[mask, "load (h)"].clip(lower=0).round(1)
-    capacity = emp_df.loc[mask, "capacity (h)"]
-    utilisation = (load / capacity).round(3)
+    load = max(0.0, float(emp_df.loc[mask, "load (h)"].iloc[0]))
+    capacity = float(emp_df.loc[mask, "capacity (h)"].iloc[0])
+    utilisation = load / capacity
+
+    load = round(load, 1)
     emp_df.loc[mask, "load (h)"] = load
-    emp_df.loc[mask, "remaining (h)"] = (capacity - load).round(1)
-    emp_df.loc[mask, "utilisation"] = utilisation
-    emp_df.loc[mask, "risk"] = utilisation.apply(risk)
+    emp_df.loc[mask, "remaining (h)"] = round(capacity - load, 1)
+    emp_df.loc[mask, "utilisation"] = round(utilisation, 3)
+    emp_df.loc[mask, "risk"] = risk(utilisation)
 
 
 def next_task_id(task_df: pd.DataFrame) -> str:
@@ -311,6 +317,8 @@ with top_right:
 # MANAGER VIEW
 # ─────────────────────────────────────────────
 if st.session_state.role == "manager":
+    manager_names = MANAGER_TEAMS[st.session_state.user_name]
+    manager_emp_df = emp_df[emp_df["name"].isin(manager_names)].copy()
 
     tab1, tab2, tab3 = st.tabs(["team overview", "assign task", "knowledge base"])
 
@@ -321,12 +329,13 @@ if st.session_state.role == "manager":
             '<div class="section-label">current workload — simulated demo data</div>',
             unsafe_allow_html=True
         )
+        st.caption("employee workload excludes manager personas.")
 
-        total_used = emp_df["load (h)"].sum()
-        total_cap  = emp_df["capacity (h)"].sum()
-        near_n     = (emp_df["risk"] == "near").sum()
-        over_n     = (emp_df["risk"] == "overload").sum()
-        avg_rem    = emp_df["remaining (h)"].mean()
+        total_used = manager_emp_df["load (h)"].sum()
+        total_cap  = manager_emp_df["capacity (h)"].sum()
+        near_n     = (manager_emp_df["risk"] == "near").sum()
+        over_n     = (manager_emp_df["risk"] == "overload").sum()
+        avg_rem    = manager_emp_df["remaining (h)"].mean()
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("capacity used", f"{total_used/total_cap*100:.0f}%",
@@ -339,7 +348,7 @@ if st.session_state.role == "manager":
 
         st.subheader("employee workload")
 
-        show = emp_df[[
+        show = manager_emp_df[[
             "id", "name", "role level", "family",
             "load (h)", "capacity (h)", "remaining (h)", "utilisation", "risk"
         ]].copy()
@@ -356,7 +365,9 @@ if st.session_state.role == "manager":
         )
 
         st.subheader("utilisation by employee")
-        for _, employee in emp_df.sort_values("utilisation", ascending=False).iterrows():
+        for _, employee in manager_emp_df.sort_values(
+            "utilisation", ascending=False
+        ).iterrows():
             name_col, progress_col, status_col = st.columns([2, 5, 2])
             utilisation = float(employee["utilisation"])
             with name_col:
@@ -394,8 +405,11 @@ if st.session_state.role == "manager":
         with col_r:
             st.markdown('<div class="section-label">potential assignee</div>',
                         unsafe_allow_html=True)
-            sel_name = st.selectbox("select employee", emp_df["name"].tolist())
-            emp_row  = emp_df[emp_df["name"] == sel_name].iloc[0]
+            sel_name = st.selectbox(
+                "select employee",
+                manager_emp_df["name"].tolist(),
+            )
+            emp_row = manager_emp_df[manager_emp_df["name"] == sel_name].iloc[0]
 
             # show quick profile
             st.markdown(f"""
@@ -431,7 +445,7 @@ if st.session_state.role == "manager":
         }
 
         # find best alternative
-        cands = emp_df[emp_df["name"] != sel_name].copy()
+        cands = manager_emp_df[manager_emp_df["name"] != sel_name].copy()
         cands["proj"]   = cands["load (h)"] + est_h
         cands["util_p"] = cands["proj"] / cands["capacity (h)"]
         cands["score"]  = cands["util_p"] - cands[sel_skill].astype(int) * 0.01
@@ -506,7 +520,7 @@ if st.session_state.role == "manager":
                     unsafe_allow_html=True)
         st.subheader("assignment ranking - lowest projected risk first")
 
-        ranked = emp_df.copy()
+        ranked = manager_emp_df.copy()
         ranked["proj load"]    = (ranked["load (h)"] + est_h).round(1)
         ranked["util after"]   = (ranked["proj load"] / ranked["capacity (h)"]).round(3)
         ranked["rem after"]    = (ranked["capacity (h)"] - ranked["proj load"]).round(1)
@@ -625,6 +639,7 @@ else:
         c1.metric("current load", f"{me['load (h)']:.1f}h")
         c2.metric("weekly capacity", f"{me['capacity (h)']:.1f}h")
         c3.metric("remaining", f"{me['remaining (h)']:.1f}h")
+        st.caption("current load includes all assigned work in this demo session.")
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown('<div class="section-label">skill profile</div>', unsafe_allow_html=True)
