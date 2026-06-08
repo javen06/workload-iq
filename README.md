@@ -1,225 +1,535 @@
 # workload iq
 
-> AI-assisted onboarding and workload planning for enterprise teams.
+`workload iq` is a Streamlit prototype for workload planning, task assignment,
+and employee onboarding support.
 
----
+Managers can review team capacity, estimate task effort, identify overload
+risk, and assign work. Employees can review active tasks, understand how
+estimates are calculated, and complete or release assigned work.
 
-## Problem
+The application uses deterministic simulated data and a transparent rule-based
+heuristic. It does not use a machine-learning model, database, or external
+service.
 
-When a new hire joins or a team member is promoted, managers often have no reliable way to estimate how long tasks will take for someone at that experience level. This can lead to overloaded new hires, unrealistic deadlines, and poor handover when staff rotate or leave.
+## Contents
 
-## Solution
-
-workload iq uses historical task completion data — contributed by existing staff over time — to produce transparent, explainable task duration estimates.
-
-These estimates account for:
-
-- role level
-- skill profile
-- task complexity
-- current workload
-
-Managers get a clear overload warning system, while new hires get a realistic and supportive view of their ramp-up expectations.
-
----
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Using the demo](#using-the-demo)
+- [Demo personas](#demo-personas)
+- [Workload and risk model](#workload-and-risk-model)
+- [Estimation model](#estimation-model)
+- [Simulated data](#simulated-data)
+- [Session state](#session-state)
+- [Project structure](#project-structure)
+- [Configuration](#configuration)
+- [Development and validation](#development-and-validation)
+- [Troubleshooting](#troubleshooting)
+- [Limitations](#limitations)
+- [Responsible use](#responsible-use)
 
 ## Features
 
-### Manager Console
+### Demo access model
 
-- Team workload overview with risk status:
-  - Safe
-  - Near Capacity
-  - Overload Risk
-- Summary metrics:
-  - team capacity used
-  - employees near capacity
-  - overload count
-- Task assignment simulator:
-  - select task type
-  - select complexity
-  - select required skill
-  - select assignee
-- Transparent estimate with a human-readable explanation of every multiplier
-- Ranked list of recommended assignees by:
-  - workload risk
-  - skill match
-  - remaining capacity
+The app starts with role and persona selection.
 
-### New Hire Planner
+- Manager personas can access team overview, task assignment, and knowledge
+  base views.
+- Employee personas can access only their own tasks and estimation guidance.
+- Manager personas are separate from employee workload data.
+- Each manager sees and assigns work only to their own demo team.
 
-- Employee profile with skill levels and development areas
-- Assigned task list with estimated hours and remaining capacity
-- Phase-by-phase breakdown for each task type
-  - example: Triage → Fix → Test
-- Skill-gap guidance with supportive coaching notes when the required skill is below 5/10
+This is a demonstration access model. It is not production authentication or
+authorization.
 
-### Task Knowledge Base
+### Manager experience
 
-- Historical average completion times by task type and role level
-- Charts:
-  - average hours by task type
-  - average hours by role level
-- Filterable historical completion records
-- Explains how senior task history anchors estimates for new hires
+Managers can:
 
----
+- review team load, capacity, remaining hours, utilisation, and risk;
+- see safe, near-capacity, and overload states;
+- inspect utilisation using a fixed 0-100% progress display;
+- estimate task duration from task type, complexity, role, skill, and load;
+- compare projected workload and skill fit across their team;
+- assign a pending task to an employee;
+- proceed with an assignment even when it creates overload risk;
+- receive a visible warning for overload assignments; and
+- explore historical completion benchmarks.
 
-## Tech Stack
+Clicking **assign task**:
 
-- Python 3.10+
+1. creates a new task ID;
+2. adds a pending task to the current session;
+3. assigns it to the selected employee;
+4. increases the employee's current load;
+5. recalculates remaining capacity, utilisation, and risk; and
+6. refreshes the app.
+
+### Employee experience
+
+Employees can:
+
+- review current load, weekly capacity, and remaining capacity;
+- inspect their skill profile and development areas;
+- view pending and in-progress tasks;
+- review phase-by-phase task breakdowns;
+- receive guidance for tasks involving developing skills;
+- mark a selected task as completed; or
+- release a selected task.
+
+Completing or releasing a task changes its status, subtracts its estimated
+hours from the employee's load, and recalculates capacity and risk.
+
+### Knowledge base
+
+The manager knowledge base includes:
+
+- average completion hours by task type and role level;
+- average hours by task type;
+- average hours by role level;
+- task-type and role-level filters; and
+- simulated historical completion records.
+
+## Quick start
+
+### Requirements
+
+- Python 3.10 or newer
+- `pip`
+
+Runtime dependencies:
+
 - Streamlit
-- Pandas
+- pandas
 - NumPy
 
-No database.  
-No external APIs.  
-No ML model.
+### 1. Clone or open the repository
 
-Estimation uses a transparent rule-based heuristic.
-
----
-
-## How to Run Locally
-
-Clone the repository:
+Clone from GitHub:
 
 ```bash
 git clone https://github.com/javen06/workload-iq.git
 cd workload-iq
 ```
 
-Install dependencies:
+If the repository is already available locally:
 
 ```bash
+cd ~/Desktop/code/workload-iq
+```
+
+### 2. Create a virtual environment
+
+macOS or Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Windows PowerShell:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Install dependencies
+
+```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Run the app:
+### 4. Run the app
 
 ```bash
 streamlit run app.py
 ```
 
-The app will open at:
+Streamlit normally opens a browser automatically. Otherwise, visit:
 
 ```text
 http://localhost:8501
 ```
 
----
+Press `Ctrl+C` in the terminal to stop the server.
 
-## Project Structure
+Do not use `streamlit_app.py` as the main entrypoint. It is a compatibility
+shim that displays the correct launch command.
+
+## Using the demo
+
+### Manager workflow
+
+1. Select `manager`.
+2. Select `alice tan` or `david yeo`.
+3. Click **continue**.
+4. Use **team overview** to inspect the manager's assigned employees.
+5. Use **assign task** to estimate and assign work.
+6. Use **knowledge base** to explore historical benchmarks.
+
+To assign work:
+
+1. Select a task type.
+2. Choose complexity from 1 to 5.
+3. Select a priority.
+4. Confirm or change the required skill.
+5. Select an employee from the manager's team.
+6. Review the estimate, recommendation, and projected utilisation.
+7. Click **assign task**.
+
+Assignments that produce overload remain allowed because urgent operational
+work may still need an owner. The app displays:
+
+```text
+assignment allowed, but this creates overload risk
+```
+
+### Employee workflow
+
+1. Select `employee`.
+2. Select an employee persona.
+3. Click **continue**.
+4. Review capacity, skills, and active work in **my tasks**.
+5. Select an active task.
+6. Click **mark selected task completed** or **release selected task**.
+7. Open **how estimates work** to inspect the estimation rules.
+
+Use **sign out** to return to persona selection.
+
+## Demo personas
+
+### Managers and teams
+
+| Manager | Managed employees |
+| --- | --- |
+| alice tan | ben lim, clara ng, evelyn koh, farah aziz |
+| david yeo | gary ong, hannah soh, ivan teo, jasmine wu |
+
+Managers do not appear in the employee dataframe and do not contribute to team
+capacity.
+
+### Employees
+
+- ben lim
+- clara ng
+- evelyn koh
+- farah aziz
+- gary ong
+- hannah soh
+- ivan teo
+- jasmine wu
+
+Initial employee loads deliberately demonstrate all three risk states.
+
+## Workload and risk model
+
+Each employee has:
+
+- current load in hours;
+- weekly capacity, currently 40 hours;
+- remaining capacity;
+- utilisation; and
+- risk status.
+
+```text
+remaining capacity = weekly capacity - current load
+utilisation = current load / weekly capacity
+```
+
+Risk thresholds:
+
+| Risk | Rule |
+| --- | --- |
+| safe | utilisation below 75% |
+| near capacity | utilisation from 75% through 95% |
+| overload | utilisation above 95% |
+
+Remaining capacity can be negative when load exceeds weekly capacity. When a
+task is completed or released, current load is clamped to a minimum of zero.
+
+The initial current load is a demo aggregate. It is not reconstructed from the
+generated task list.
+
+## Estimation model
+
+Task duration uses an explainable heuristic:
+
+```text
+estimated hours =
+base hours
+× role multiplier
+× complexity multiplier
+× skill multiplier
+× workload drag
+```
+
+The app displays the calculation formula for each estimate.
+
+### Base hours
+
+| Task type | Base hours |
+| --- | ---: |
+| bug fix | 2.5 |
+| feature build | 6.0 |
+| data analysis | 4.5 |
+| report writing | 3.5 |
+| support ticket | 1.5 |
+| documentation | 2.5 |
+
+### Role multipliers
+
+| Role level | Multiplier |
+| --- | ---: |
+| new hire | 1.45 |
+| junior | 1.20 |
+| mid | 1.00 |
+| senior | 0.75 |
+
+### Complexity multipliers
+
+| Complexity | Multiplier |
+| --- | ---: |
+| 1 | 0.75 |
+| 2 | 0.90 |
+| 3 | 1.00 |
+| 4 | 1.25 |
+| 5 | 1.50 |
+
+### Skill multiplier
+
+Skills use a 1-10 scale, with 5 as neutral.
+
+- Below 5: estimated time increases by 20% per level below 5.
+- At 5: the multiplier is 1.00.
+- Above 5: estimated time decreases by 8% per level above 5.
+- The multiplier is constrained to a range of 0.50 to 2.00.
+
+### Workload drag
+
+Employees above 30 hours of current load receive an additional multiplier:
+
+```text
+workload drag = 1 + (hours over 30 × 0.03)
+```
+
+This adds 3% per assigned hour above 30 hours.
+
+### Assignment ranking
+
+Employees are ranked using projected utilisation with a small skill adjustment:
+
+```text
+fit score = projected utilisation - (skill level × 0.01)
+```
+
+Lower scores appear first. This ranking is decision support, not an automatic
+assignment decision.
+
+## Simulated data
+
+Data generation uses a fixed random seed:
+
+```python
+numpy.random.default_rng(42)
+```
+
+This makes generated employee profiles, tasks, and history reproducible.
+
+The initial demo includes:
+
+- 2 manager personas;
+- 8 employee personas;
+- 30 generated tasks; and
+- 200 historical completion records.
+
+Initial workload values are seeded separately so the dashboard always
+demonstrates safe, near-capacity, and overload conditions.
+
+All names and records are simulated and do not represent real people or
+organisations.
+
+## Session state
+
+Mutable data is stored in:
+
+```python
+st.session_state.emp_df
+st.session_state.task_df
+```
+
+Consequences:
+
+- assignments persist across reruns in the current session;
+- completed and released statuses persist in the current session;
+- signing out does not reset the demo;
+- different browser sessions have separate state; and
+- restarting Streamlit creates fresh demo data.
+
+There is no database or persistence across server restarts.
+
+To reset the demo, stop Streamlit and launch it again:
+
+```bash
+streamlit run app.py
+```
+
+## Project structure
 
 ```text
 workload-iq/
-├── app.py              # Main Streamlit application
-├── streamlit_app.py    # Compatibility shim pointing users to app.py
-├── requirements.txt    # Python dependencies
-└── README.md           # Project documentation
+├── .streamlit/
+│   └── config.toml       # Native Streamlit theme
+├── app.py                # Main application and prototype logic
+├── streamlit_app.py      # Compatibility shim
+├── requirements.txt      # Runtime dependencies
+├── README.md             # Project documentation
+└── LICENSE               # Repository licence
 ```
 
----
+The single-file `app.py` structure is intentional for the current prototype.
 
-## Notes on Simulated Data
+## Configuration
 
-All data is generated with:
+The dark interface uses Streamlit's native theme configuration in
+`.streamlit/config.toml`:
 
-```python
-numpy.random.default_rng(seed=42)
+```toml
+[theme]
+base = "dark"
+primaryColor = "#60a5fa"
+backgroundColor = "#0b0f17"
+secondaryBackgroundColor = "#111827"
+textColor = "#f9fafb"
+font = "sans serif"
 ```
 
-This makes the demo data deterministic.
+The app does not load external fonts or images.
 
-The prototype includes:
+## Development and validation
 
-- 2 demo manager personas
-- 8 simulated employees
-- 30 active tasks
-- 200 historical completions
+### Check Python syntax
 
-None of this data represents any real person or organisation.
+```bash
+python -m py_compile app.py streamlit_app.py
+```
 
----
+### Run after making changes
 
-## Estimation Logic
+```bash
+streamlit run app.py
+```
 
-workload iq uses a transparent heuristic:
+### Recommended manual checks
+
+1. Manager selection contains only `alice tan` and `david yeo`.
+2. Employee selection contains only the eight employee personas.
+3. Alice and David see different employee teams.
+4. Manager metrics and assignment choices use only the current manager's team.
+5. Safe, near-capacity, and overload states are visible across the demo.
+6. Assigning a task creates a pending task and increases employee load.
+7. Completing a task reduces load and marks it completed.
+8. Releasing a task reduces load and marks it released.
+9. Overload assignments remain possible and display a warning.
+10. Tables, progress indicators, and cards remain readable in dark mode.
+
+Before committing changes:
+
+```bash
+git status
+git diff
+```
+
+## Troubleshooting
+
+### `streamlit: command not found`
+
+Activate the virtual environment and reinstall dependencies:
+
+macOS or Linux:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+### The shim warning appears
+
+The wrong entrypoint was launched. Use:
+
+```bash
+streamlit run app.py
+```
+
+### Port 8501 is in use
+
+Choose another port:
+
+```bash
+streamlit run app.py --server.port 8502
+```
+
+Then open:
 
 ```text
-estimated_hours =
-base_hours[task_type]
-× role_multiplier[role_level]
-× complexity_multiplier[complexity]
-× skill_multiplier(skill_level)
-× workload_drag(current_load)
+http://localhost:8502
 ```
 
-### Multipliers
+### Demo changes disappeared
 
-Role multipliers:
+The app stores mutable data only in session state. Data resets when the session
+or Streamlit process is recreated.
 
-```text
-New Hire: 1.45×
-Junior:   1.20×
-Mid:      1.00×
-Senior:   0.75×
-```
+### Interface changes are not visible
 
-Complexity multipliers:
+Stop and restart Streamlit. If necessary, clear the Streamlit cache from the
+app menu and refresh the browser.
 
-```text
-1 → 0.75×
-2 → 0.90×
-3 → 1.00×
-4 → 1.25×
-5 → 1.50×
-```
+## Limitations
 
-Skill multiplier:
+This repository is a prototype. It does not provide:
 
-```text
-Low skill increases estimated time.
-High skill reduces estimated time.
-```
+- real authentication or authorization;
+- persistent storage;
+- audit logs;
+- concurrent editing guarantees;
+- integration with project-management systems;
+- configurable schedules, leave, or working hours;
+- task dependencies;
+- confidence intervals;
+- a trained prediction model; or
+- production-grade employee-data controls.
 
-Workload drag:
+The initial current load is a seeded demo aggregate rather than the sum of
+generated active tasks. Treat it as a planning demonstration, not an accounting
+ledger.
 
-```text
-+3% per hour over 30h current load
-```
+## Responsible use
 
-Every estimate is accompanied by a human-readable formula.
+`workload iq` is intended to support:
 
-There is no black-box model.
+- transparent workload planning;
+- realistic capacity discussions;
+- early overload detection;
+- employee onboarding and development; and
+- informed manager judgement.
 
----
+It should not be used as:
 
-## Responsible AI Note
+- an automated performance evaluation system;
+- an employee surveillance tool;
+- a punitive ranking mechanism;
+- a source of employment decisions without human review; or
+- a replacement for direct conversations with employees.
 
-This prototype is decision support, not automated employee evaluation.
-
-It is intended to support:
-
-- fair workload planning
-- transparent expectations
-- onboarding support
-- manager judgment
-
-It must not be used as:
-
-- a surveillance tool
-- a punitive mechanism
-- a replacement for honest conversations between managers and their teams
-
----
-
-## Future Improvements
-
-- Connect to real project management systems such as Jira, Asana, or Linear
-- Allow managers to log actual task completion times to improve estimates over time
-- Add role-specific skill taxonomies
-- Add multi-team and cross-department workload views
-- Add exportable reports for sprint planning or onboarding documentation
-- Add persistent storage with a database
-- Add proper authentication and role-based access control
+Estimates are planning benchmarks, not deadlines or measures of individual
+worth.
