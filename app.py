@@ -1,13 +1,11 @@
-# app.py — workload iq
+# app.py - workload iq
 # run with: streamlit run app.py
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-# ─────────────────────────────────────────────
-# page config — must be first st call
-# ─────────────────────────────────────────────
+# Page config must be the first Streamlit call.
 st.set_page_config(
     page_title="workload iq",
     page_icon=None,
@@ -15,218 +13,72 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ─────────────────────────────────────────────
-# global css — apple-adjacent: neutral, tight, rounded, small type
-# ─────────────────────────────────────────────
+# Minimal styling for app-specific HTML. Native Streamlit components inherit the
+# coordinated dark theme from .streamlit/config.toml.
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@300;400&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    color: #1a1a1a;
-    background: #f5f5f7;
+html, body, main {
+    background: #0b0f17;
+    color: #f9fafb;
 }
-
-/* hide default streamlit chrome */
-#MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 2rem 2.5rem 4rem 2.5rem; max-width: 1200px; }
-
-/* page wordmark */
+main {
+    padding-bottom: 1.5rem;
+}
 .wordmark {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: lowercase;
-    color: #6e6e73;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid #e0e0e5;
+    color: #94a3b8;
+    border-bottom: 1px solid #273244;
     padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
 }
-
-/* section headers */
-h1, h2, h3 { font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: -0.01em; }
-h1 { font-size: 22px; color: #1d1d1f; }
-h2 { font-size: 15px; color: #1d1d1f; }
-h3 { font-size: 13px; color: #3a3a3c; }
-
-/* metric cards */
-[data-testid="metric-container"] {
-    background: #ffffff;
-    border: 1px solid #e0e0e5;
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-}
-[data-testid="metric-container"] > div:first-child { font-size: 10px; letter-spacing: 0.08em; text-transform: lowercase; color: #6e6e73; }
-[data-testid="metric-container"] > div:nth-child(2) { font-size: 22px; font-weight: 500; color: #1d1d1f; }
-
-/* tab strip */
-[data-baseweb="tab-list"] {
-    background: #e8e8ed;
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
-}
-[data-baseweb="tab"] {
-    border-radius: 8px !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-    text-transform: lowercase !important;
-    letter-spacing: 0.04em !important;
-    color: #6e6e73 !important;
-    padding: 6px 16px !important;
-}
-[aria-selected="true"] {
-    background: #ffffff !important;
-    color: #1d1d1f !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.10) !important;
-}
-[data-baseweb="tab-highlight"] { display: none !important; }
-[data-baseweb="tab-border"] { display: none !important; }
-
-/* data panel — the "code block" treatment for tables/charts */
-.data-panel {
-    background: #1d1d1f;
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    margin: 0.75rem 0 1.5rem 0;
-    border: 1px solid #2d2d2f;
-}
-.data-panel-header {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: lowercase;
-    color: #6e6e73;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #2d2d2f;
-}
-.data-panel table { color: #f5f5f7; }
-
-/* dataframe override — dark */
-[data-testid="stDataFrame"] {
-    background: #1d1d1f !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-    border: 1px solid #2d2d2f !important;
-}
-
-/* inputs / selects */
-[data-baseweb="select"] > div, [data-baseweb="input"] > div {
-    border-radius: 8px !important;
-    border-color: #d0d0d5 !important;
-    background: #ffffff !important;
-    font-size: 12px !important;
-}
-[data-baseweb="slider"] { padding: 0 !important; }
-
-/* buttons */
-[data-testid="stButton"] button {
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: lowercase;
-    background: #1d1d1f;
-    color: #f5f5f7;
-    border: none;
-    padding: 0.4rem 1.2rem;
-    transition: opacity 0.15s;
-}
-[data-testid="stButton"] button:hover { opacity: 0.8; }
-
-/* pills for risk status */
 .pill {
     display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: lowercase;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
-.pill-safe   { background: #d4edda; color: #155724; }
-.pill-near   { background: #fff3cd; color: #856404; }
-.pill-over   { background: #f8d7da; color: #721c24; }
-
-/* expander */
-[data-testid="stExpander"] {
-    border: 1px solid #e0e0e5 !important;
-    border-radius: 10px !important;
-    background: #ffffff !important;
-}
-
-/* result block */
+.pill-safe { background: #123524; color: #86efac; }
+.pill-near { background: #422006; color: #fbbf24; }
+.pill-over { background: #450a0a; color: #fca5a5; }
 .result-block {
-    background: #ffffff;
-    border: 1px solid #e0e0e5;
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
+    background: #111827;
+    border: 1px solid #273244;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
     margin: 1rem 0;
 }
-.result-block.safe   { border-left: 3px solid #34c759; }
-.result-block.near   { border-left: 3px solid #ff9f0a; }
-.result-block.over   { border-left: 3px solid #ff3b30; }
-
-/* login screen */
-.login-wrap {
-    max-width: 360px;
-    margin: 5rem auto;
-    background: #ffffff;
-    border: 1px solid #e0e0e5;
-    border-radius: 16px;
-    padding: 2.5rem;
-}
-.login-title {
-    font-size: 18px;
-    font-weight: 500;
-    color: #1d1d1f;
-    margin-bottom: 0.25rem;
-}
-.login-sub {
-    font-size: 11px;
-    color: #6e6e73;
-    margin-bottom: 2rem;
-}
-
-/* section label */
+.result-block.safe { border-left: 4px solid #22c55e; }
+.result-block.near { border-left: 4px solid #f59e0b; }
+.result-block.over { border-left: 4px solid #ef4444; }
 .section-label {
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.10em;
-    text-transform: lowercase;
-    color: #6e6e73;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
     margin-bottom: 0.5rem;
 }
-
-/* mono annotation */
 .mono-note {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: #8e8e93;
-    background: #f5f5f7;
-    border-radius: 6px;
-    padding: 0.5rem 0.75rem;
-    margin: 0.5rem 0;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    background: #151b26;
+    border: 1px solid #273244;
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.8rem;
+    margin: 0.75rem 0;
 }
-
-/* divider */
-hr { border: none; border-top: 1px solid #e0e0e5; margin: 1.5rem 0; }
-
-/* phase row */
 .phase-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f0f0f2;
-    font-size: 12px;
+    border-bottom: 1px solid #273244;
+    font-size: 0.85rem;
 }
-.phase-name { flex: 1; color: #3a3a3c; font-weight: 500; }
-.phase-hrs { color: #1d1d1f; font-weight: 600; min-width: 40px; text-align: right; }
-.phase-pct { color: #8e8e93; font-size: 10px; min-width: 30px; }
+.phase-name { flex: 1; color: #e5e7eb; font-weight: 500; }
+.phase-hrs { color: #f9fafb; font-weight: 600; min-width: 40px; text-align: right; }
+.phase-pct { color: #94a3b8; min-width: 30px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -235,6 +87,11 @@ hr { border: none; border-top: 1px solid #e0e0e5; margin: 1.5rem 0; }
 # ─────────────────────────────────────────────
 ROLE_LEVELS   = ["new hire", "junior", "mid", "senior"]
 ROLE_FAMILIES = ["engineering", "data", "support", "product"]
+MANAGERS      = {"alice tan": "M01", "david yeo": "M02"}
+EMPLOYEE_NAMES = [
+    "ben lim", "clara ng", "evelyn koh", "farah aziz",
+    "gary ong", "hannah soh", "ivan teo", "jasmine wu",
+]
 TASK_TYPES    = ["bug fix", "feature build", "data analysis",
                  "report writing", "support ticket", "documentation"]
 SKILLS        = ["frontend", "backend", "debugging",
@@ -298,27 +155,43 @@ def pill(r: str) -> str:
     return f'<span class="pill pill-{r}">{labels[r]}</span>'
 
 
+def recalculate_employee(emp_df: pd.DataFrame, employee_id: str) -> None:
+    mask = emp_df["id"] == employee_id
+    load = emp_df.loc[mask, "load (h)"].clip(lower=0).round(1)
+    capacity = emp_df.loc[mask, "capacity (h)"]
+    utilisation = (load / capacity).round(3)
+    emp_df.loc[mask, "load (h)"] = load
+    emp_df.loc[mask, "remaining (h)"] = (capacity - load).round(1)
+    emp_df.loc[mask, "utilisation"] = utilisation
+    emp_df.loc[mask, "risk"] = utilisation.apply(risk)
+
+
+def next_task_id(task_df: pd.DataFrame) -> str:
+    numbers = pd.to_numeric(
+        task_df["task id"].str.removeprefix("T"),
+        errors="coerce",
+    )
+    return f"T{int(numbers.max()) + 1:03d}"
+
+
 # ─────────────────────────────────────────────
 # demo data — deterministic seed
 # ─────────────────────────────────────────────
 @st.cache_data
 def build_data():
     rng = np.random.default_rng(42)
-    names = [
-        "alice tan", "ben lim", "clara ng", "david yeo", "evelyn koh",
-        "farah aziz", "gary ong", "hannah soh", "ivan teo", "jasmine wu",
-    ]
+    demo_loads = [18.0, 31.0, 39.0, 42.0, 27.0, 34.0, 12.0, 37.0]
     emps = []
-    for i, name in enumerate(names):
+    for i, name in enumerate(EMPLOYEE_NAMES):
         rl  = rng.choice(ROLE_LEVELS, p=[0.2, 0.3, 0.3, 0.2])
         rf  = rng.choice(ROLE_FAMILIES)
-        load = round(float(rng.uniform(5, 36)), 1)
+        load = demo_loads[i]
         sk  = {s: int(rng.integers(2, 10)) for s in SKILLS}
         emps.append({"id": f"E{i+1:02d}", "name": name,
                      "role level": rl, "family": rf,
                      "load (h)": load, "capacity (h)": 40.0, **sk})
     emp = pd.DataFrame(emps)
-    emp["remaining (h)"] = emp["capacity (h)"] - emp["load (h)"]
+    emp["remaining (h)"] = (emp["capacity (h)"] - emp["load (h)"]).round(1)
     emp["utilisation"]   = (emp["load (h)"] / emp["capacity (h)"]).round(3)
     emp["risk"]          = emp["utilisation"].apply(risk)
 
@@ -361,12 +234,16 @@ def build_data():
     return emp, task_df, hist_df
 
 
-emp_df, task_df, hist_df = build_data()
+initial_emp_df, initial_task_df, hist_df = build_data()
 
 
 # ─────────────────────────────────────────────
 # session state — role-based access
 # ─────────────────────────────────────────────
+if "emp_df" not in st.session_state:
+    st.session_state.emp_df = initial_emp_df.copy(deep=True)
+if "task_df" not in st.session_state:
+    st.session_state.task_df = initial_task_df.copy(deep=True)
 if "role" not in st.session_state:
     st.session_state.role = None
 if "user_id" not in st.session_state:
@@ -374,25 +251,33 @@ if "user_id" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = None
 
+emp_df = st.session_state.emp_df
+task_df = st.session_state.task_df
+
 
 # ─────────────────────────────────────────────
 # login gate
 # ─────────────────────────────────────────────
 if st.session_state.role is None:
-    st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
-    st.markdown('<div class="login-title">workload iq</div>', unsafe_allow_html=True)
-    st.markdown('<div class="login-sub">sign in to continue</div>', unsafe_allow_html=True)
+    st.title("workload iq")
+    st.caption("select a demo persona")
 
-    who = st.selectbox("who are you?", emp_df["name"].tolist(), label_visibility="collapsed",
-                       placeholder="select your name")
-    role_choice = st.radio("your role", ["i'm a manager", "i'm a team member"],
-                           horizontal=True, label_visibility="collapsed")
+    role_choice = st.radio("role", ["manager", "employee"], horizontal=True)
+    people = list(MANAGERS) if role_choice == "manager" else EMPLOYEE_NAMES
+    who = st.selectbox(
+        "user",
+        people,
+        placeholder="select a user",
+    )
 
     if st.button("continue"):
-        emp_row = emp_df[emp_df["name"] == who].iloc[0]
         st.session_state.user_name = who
-        st.session_state.user_id   = emp_row["id"]
-        st.session_state.role      = "manager" if "manager" in role_choice else "member"
+        st.session_state.role = role_choice
+        if role_choice == "manager":
+            st.session_state.user_id = MANAGERS[who]
+        else:
+            emp_row = emp_df[emp_df["name"] == who].iloc[0]
+            st.session_state.user_id = emp_row["id"]
         st.rerun()
 
     st.markdown("""
@@ -401,7 +286,6 @@ if st.session_state.role is None:
     role selection controls which views are shown.
     </div>
     """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 
@@ -453,9 +337,7 @@ if st.session_state.role == "manager":
 
         st.markdown("<hr>", unsafe_allow_html=True)
 
-        # dark data panel
-        st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="data-panel-header">employee workload</div>', unsafe_allow_html=True)
+        st.subheader("employee workload")
 
         show = emp_df[[
             "id", "name", "role level", "family",
@@ -464,29 +346,31 @@ if st.session_state.role == "manager":
         show["utilisation"] = (show["utilisation"] * 100).round(1).astype(str) + "%"
 
         def _risk_color(val):
-            if val == "overload": return "color: #ff6b6b"
-            if val == "near":     return "color: #ffd60a"
-            return "color: #30d158"
+            if val == "overload": return "color: #fca5a5"
+            if val == "near":     return "color: #fbbf24"
+            return "color: #86efac"
 
         st.dataframe(
-            show.style.applymap(_risk_color, subset=["risk"]),
-            width=1100, hide_index=True
+            show.style.map(_risk_color, subset=["risk"]),
+            width="stretch", hide_index=True
         )
-        st.markdown('</div>', unsafe_allow_html=True)
 
-        # utilisation bar chart — dark panel
-        st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="data-panel-header">utilisation by employee</div>',
-                    unsafe_allow_html=True)
-        chart_data = emp_df.set_index("name")[["utilisation"]].rename(
-            columns={"utilisation": "utilisation %"})
-        chart_data["utilisation %"] = (chart_data["utilisation %"] * 100).round(1)
-        st.bar_chart(chart_data, height=200)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.subheader("utilisation by employee")
+        for _, employee in emp_df.sort_values("utilisation", ascending=False).iterrows():
+            name_col, progress_col, status_col = st.columns([2, 5, 2])
+            utilisation = float(employee["utilisation"])
+            with name_col:
+                st.write(employee["name"])
+            with progress_col:
+                st.progress(min(utilisation, 1.0))
+            with status_col:
+                st.write(f'{utilisation * 100:.0f}% | {employee["risk"]}')
 
     # ── tab 2: assign task ────────────────────
     with tab2:
         st.markdown("## assign task")
+        if "assignment_message" in st.session_state:
+            st.success(st.session_state.pop("assignment_message"))
         st.markdown(
             '<div class="section-label">'
             'estimate duration and check workload impact before assigning'
@@ -517,7 +401,7 @@ if st.session_state.role == "manager":
             st.markdown(f"""
             <div class="result-block">
               <div class="section-label">{sel_name}</div>
-              <div style="font-size:12px; color:#3a3a3c; margin-top:4px">
+              <div style="font-size:12px; color:#94a3b8; margin-top:4px">
                 {emp_row['role level']} &nbsp;·&nbsp; {emp_row['family']}
               </div>
               <div style="font-size:12px; margin-top:8px">
@@ -543,7 +427,7 @@ if st.session_state.role == "manager":
         rec_text = {
             "safe":     "assign",
             "near":     "assign — monitor closely",
-            "overload": "split, defer, or reassign",
+            "overload": "assign only if operationally necessary",
         }
 
         # find best alternative
@@ -572,6 +456,7 @@ if st.session_state.role == "manager":
         """, unsafe_allow_html=True)
 
         if r == "overload":
+            st.warning("assignment allowed, but this creates overload risk")
             st.markdown(
                 f'<div class="mono-note">'
                 f'suggested alternative: <strong>{best_alt["name"]}</strong> — '
@@ -581,6 +466,32 @@ if st.session_state.role == "manager":
                 f'</div>',
                 unsafe_allow_html=True
             )
+
+        if st.button("assign task", type="primary"):
+            task_id = next_task_id(task_df)
+            new_task = pd.DataFrame([{
+                "task id": task_id,
+                "title": f"{sel_type} #{task_id[1:]}",
+                "type": sel_type,
+                "complexity": sel_comp,
+                "required skill": sel_skill,
+                "priority": sel_pri,
+                "assigned to": emp_row["id"],
+                "status": "pending",
+                "est. hours": est_h,
+            }])
+            st.session_state.task_df = pd.concat(
+                [task_df, new_task],
+                ignore_index=True,
+            )
+            employee_mask = st.session_state.emp_df["id"] == emp_row["id"]
+            st.session_state.emp_df.loc[employee_mask, "load (h)"] += est_h
+            recalculate_employee(st.session_state.emp_df, emp_row["id"])
+            st.session_state.assignment_message = (
+                f"{task_id} assigned to {sel_name}. "
+                f"new load: {proj:.1f}h"
+            )
+            st.rerun()
 
         with st.expander("how this estimate was calculated"):
             st.markdown(
@@ -593,9 +504,7 @@ if st.session_state.role == "manager":
         # ranked alternatives
         st.markdown('<div class="section-label">all employees — ranked by fit</div>',
                     unsafe_allow_html=True)
-        st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="data-panel-header">assignment ranking — lowest projected risk first</div>',
-                    unsafe_allow_html=True)
+        st.subheader("assignment ranking - lowest projected risk first")
 
         ranked = emp_df.copy()
         ranked["proj load"]    = (ranked["load (h)"] + est_h).round(1)
@@ -612,10 +521,9 @@ if st.session_state.role == "manager":
         ranked.index += 1
 
         st.dataframe(
-            ranked.style.applymap(_risk_color, subset=["risk after"]),
-            width=1100
+            ranked.style.map(_risk_color, subset=["risk after"]),
+            width="stretch"
         )
-        st.markdown('</div>', unsafe_allow_html=True)
 
     # ── tab 3: knowledge base ─────────────────
     with tab3:
@@ -641,23 +549,18 @@ if st.session_state.role == "manager":
         ordered = [c for c in ROLE_LEVELS if c in pivot.columns]
         pivot = pivot[ordered]
 
-        st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="data-panel-header">avg hours — task type × role level</div>',
-                    unsafe_allow_html=True)
+        st.subheader("average hours by task type and role level")
         st.dataframe(
             pivot.style.format("{:.1f}", na_rep="—")
-                 .highlight_min(axis=1, color="#1a3a1f")
-                 .highlight_max(axis=1, color="#3a1a1a"),
-            width=1100
+                 .highlight_min(axis=1, color="#123524")
+                 .highlight_max(axis=1, color="#450a0a"),
+            width="stretch"
         )
-        st.markdown('</div>', unsafe_allow_html=True)
 
         col_a, col_b = st.columns(2)
 
         with col_a:
-            st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-            st.markdown('<div class="data-panel-header">avg hours by task type</div>',
-                        unsafe_allow_html=True)
+            st.subheader("average hours by task type")
             by_type = (
                 hist_df.groupby("task type")["actual (h)"].mean().round(1)
                 .sort_values(ascending=False).reset_index()
@@ -665,12 +568,9 @@ if st.session_state.role == "manager":
                 .set_index("task type")
             )
             st.bar_chart(by_type, height=220)
-            st.markdown('</div>', unsafe_allow_html=True)
 
         with col_b:
-            st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-            st.markdown('<div class="data-panel-header">avg hours by role level</div>',
-                        unsafe_allow_html=True)
+            st.subheader("average hours by role level")
             by_role = (
                 hist_df.groupby("role level")["actual (h)"].mean().round(1)
                 .reindex(ROLE_LEVELS).reset_index()
@@ -678,7 +578,6 @@ if st.session_state.role == "manager":
                 .set_index("role level")
             )
             st.bar_chart(by_role, height=220)
-            st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -688,13 +587,8 @@ if st.session_state.role == "manager":
         filtered = hist_df[
             hist_df["task type"].isin(f_tt) & hist_df["role level"].isin(f_rl)
         ]
-        st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="data-panel-header">completion records — {len(filtered)} rows</div>',
-            unsafe_allow_html=True
-        )
-        st.dataframe(filtered, width=1100, hide_index=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.subheader(f"completion records - {len(filtered)} rows")
+        st.dataframe(filtered, width="stretch", hide_index=True)
 
         st.markdown(
             '<div class="mono-note" style="margin-top:1.5rem">'
@@ -706,7 +600,7 @@ if st.session_state.role == "manager":
 
 
 # ─────────────────────────────────────────────
-# MEMBER VIEW
+# EMPLOYEE VIEW
 # ─────────────────────────────────────────────
 else:
     uid   = st.session_state.user_id
@@ -718,6 +612,8 @@ else:
     # ── tab 1: my tasks ───────────────────────
     with tab1:
         st.markdown(f"## {uname}")
+        if "task_update_message" in st.session_state:
+            st.success(st.session_state.pop("task_update_message"))
         st.markdown(
             f'<div class="section-label">'
             f'{me["role level"]} &nbsp;·&nbsp; {me["family"]}'
@@ -726,22 +622,18 @@ else:
         )
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("current load", f"{me['load (h)']}h")
-        c2.metric("weekly capacity", f"{me['capacity (h)']}h")
-        c3.metric("remaining", f"{me['remaining (h)']}h")
+        c1.metric("current load", f"{me['load (h)']:.1f}h")
+        c2.metric("weekly capacity", f"{me['capacity (h)']:.1f}h")
+        c3.metric("remaining", f"{me['remaining (h)']:.1f}h")
 
-        # skill bar
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown('<div class="section-label">skill profile</div>', unsafe_allow_html=True)
-        st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="data-panel-header">skills — 1 to 10</div>',
-                    unsafe_allow_html=True)
+        st.subheader("skills - 1 to 10")
         skill_chart = pd.DataFrame({
             "skill": [s.title() for s in SKILLS],
             "level": [int(me[s]) for s in SKILLS]
         }).set_index("skill")
         st.bar_chart(skill_chart, height=180)
-        st.markdown('</div>', unsafe_allow_html=True)
 
         # top/dev areas
         skdf = pd.Series({s: int(me[s]) for s in SKILLS})
@@ -785,15 +677,45 @@ else:
                     '</div>', unsafe_allow_html=True
                 )
 
-            st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-            st.markdown('<div class="data-panel-header">assigned tasks</div>',
-                        unsafe_allow_html=True)
+            st.subheader("assigned tasks")
             st.dataframe(
                 my_tasks[["task id", "title", "type", "complexity",
                            "required skill", "priority", "status", "est. hours"]],
-                width=1100, hide_index=True
+                width="stretch", hide_index=True
             )
-            st.markdown('</div>', unsafe_allow_html=True)
+
+            selected_task_id = st.selectbox(
+                "selected task",
+                my_tasks["task id"].tolist(),
+                format_func=lambda task_id: (
+                    f'{task_id} | '
+                    f'{my_tasks.loc[my_tasks["task id"] == task_id, "title"].iloc[0]}'
+                ),
+            )
+            complete_col, release_col = st.columns(2)
+
+            def update_selected_task(new_status: str) -> None:
+                task_mask = st.session_state.task_df["task id"] == selected_task_id
+                task_hours = float(
+                    st.session_state.task_df.loc[task_mask, "est. hours"].iloc[0]
+                )
+                st.session_state.task_df.loc[task_mask, "status"] = new_status
+                employee_mask = st.session_state.emp_df["id"] == uid
+                st.session_state.emp_df.loc[employee_mask, "load (h)"] -= task_hours
+                recalculate_employee(st.session_state.emp_df, uid)
+                st.session_state.task_update_message = (
+                    f"{selected_task_id} marked {new_status}. "
+                    f"{task_hours:.1f}h removed from your load."
+                )
+
+            with complete_col:
+                if st.button("mark selected task completed", width="stretch"):
+                    update_selected_task("completed")
+                    st.rerun()
+            with release_col:
+                if st.button("release selected task", width="stretch"):
+                    update_selected_task("released")
+                    st.rerun()
 
             st.markdown("<hr>", unsafe_allow_html=True)
             st.markdown('<div class="section-label">task breakdown</div>', unsafe_allow_html=True)
@@ -864,21 +786,14 @@ else:
             base_df = pd.DataFrame(
                 list(BASE_HOURS.items()), columns=["task type", "base hours"]
             )
-            st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-            st.markdown('<div class="data-panel-header">base hours</div>', unsafe_allow_html=True)
-            st.dataframe(base_df, width=500, hide_index=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.dataframe(base_df, width="stretch", hide_index=True)
 
             st.markdown('<div class="section-label" style="margin-top:1rem">role multipliers</div>',
                         unsafe_allow_html=True)
             role_df = pd.DataFrame(
                 list(ROLE_MULT.items()), columns=["role level", "multiplier"]
             )
-            st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-            st.markdown('<div class="data-panel-header">role multipliers</div>',
-                        unsafe_allow_html=True)
-            st.dataframe(role_df, width=500, hide_index=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.dataframe(role_df, width="stretch", hide_index=True)
 
         with col_r:
             st.markdown('<div class="section-label">complexity multipliers</div>',
@@ -886,11 +801,7 @@ else:
             comp_df = pd.DataFrame(
                 list(COMP_MULT.items()), columns=["complexity (1–5)", "multiplier"]
             )
-            st.markdown('<div class="data-panel">', unsafe_allow_html=True)
-            st.markdown('<div class="data-panel-header">complexity multipliers</div>',
-                        unsafe_allow_html=True)
-            st.dataframe(comp_df, width=500, hide_index=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.dataframe(comp_df, width="stretch", hide_index=True)
 
             st.markdown(
                 '<div class="section-label" style="margin-top:1rem">skill multiplier logic</div>',

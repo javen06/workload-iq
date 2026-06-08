@@ -1,4 +1,4 @@
-# Workload IQ
+# workload iq
 
 > AI-assisted onboarding and workload planning for enterprise teams.
 
@@ -10,7 +10,7 @@ When a new hire joins or a team member is promoted, managers often have no relia
 
 ## Solution
 
-Workload IQ uses historical task completion data — contributed by existing staff over time — to produce transparent, explainable task duration estimates.
+workload iq uses historical task completion data — contributed by existing staff over time — to produce transparent, explainable task duration estimates.
 
 These estimates account for:
 
@@ -133,7 +133,8 @@ This makes the demo data deterministic.
 
 The prototype includes:
 
-- 10 simulated employees
+- 2 demo manager personas
+- 8 simulated employees
 - 30 active tasks
 - 200 historical completions
 
@@ -143,7 +144,7 @@ None of this data represents any real person or organisation.
 
 ## Estimation Logic
 
-Workload IQ uses a transparent heuristic:
+workload iq uses a transparent heuristic:
 
 ```text
 estimated_hours =
